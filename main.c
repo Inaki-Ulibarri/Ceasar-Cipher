@@ -1,10 +1,14 @@
 /*
  * https://en.wikipedia.org/wiki/Caesar_cipher
+ * TODO: pipe the output to a file; foo.txt -> foo.txt.cc
  */
 
-#include "cc.h"
-//There are 127 characters in ascii
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <getopt.h>
 
+#include "cc.h"
 
 void print_help()
 {
@@ -22,7 +26,8 @@ void print_help()
 int encrypt(int ch, size_t key)
 {
 	if(isspace(ch)) return (ch);
-	//enconding spaces is a clusterfuck
+	else if(!isascii(ch)) return (ch);
+	//encoding spaces and special characters is a clusterfuck
 	key %= ASCII_SZ;
 	ch += key;
 	if(ASCII_SZ <= ch)ch -= ASCII_SZ;
@@ -35,6 +40,7 @@ int encrypt(int ch, size_t key)
 int decrypt(int ch, size_t key)
 {
 	if(isspace(ch)) return (ch);
+	else if(!isascii(ch)) return (ch);
 	key %= ASCII_SZ;
 	ch -= key;
 	if(ASCII_SZ <= ch) ch += ASCII_SZ;
@@ -57,7 +63,7 @@ int main(int argc, char *argv[])
 				print_help();
 				exit(0);
 				break;
-			
+				
 			case 'k':
 				if(optarg==NULL){
 					printf("I need you to geve me a key.\n");
@@ -88,15 +94,17 @@ int main(int argc, char *argv[])
 		exit(1);
 	}
 	int c = 0;
-
+	
 	switch(p_flags.action){
+	//I am so good at the "c" stuff
+	//sometimes I can't believe myself
 		case 'e':{
 			while((c = getc(f)) != EOF){
 				c = encrypt(c, p_flags.key);
 				printf("%c", c);
 			}
 			break;
-			
+
 		}
 		case 'd':{
 			while((c = fgetc(f)) != EOF){

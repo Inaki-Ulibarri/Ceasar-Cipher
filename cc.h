@@ -1,7 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <getopt.h>
 
 //127 character in ascii
 #define ASCII_SZ 127
