@@ -1,11 +1,12 @@
 /*
  * https://en.wikipedia.org/wiki/Caesar_cipher
- * TODO: pipe the output to a file; foo.txt -> foo.txt.cc
+ * TODO: make wrappers for ecrypt and decrypt to pipe to files
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 #include <getopt.h>
 
 #include "cc.h"
@@ -25,27 +26,52 @@ void print_help()
 //shift characters is "the wheel", check the wikipedia article
 int encrypt(int ch, size_t key)
 {
-	if(isspace(ch)) return (ch);
-	else if(!isascii(ch)) return (ch);
-	//encoding spaces and special characters is a clusterfuck
+	if(isspace(ch) || !isascii(ch))
+		return (ch);
 	key %= ASCII_SZ;
 	ch += key;
-	if(ASCII_SZ <= ch)ch -= ASCII_SZ;
-	if(ch < '!') ch += '!';
-	//dirty little trick perhaps, but it works
-	return (ch);
+	if((ASCII_SZ - 1) < ch)
+		ch = '!' + (ch - (ASCII_SZ - 1));
+	if((ASCII_SZ - 1) < ch)
+		ch = '!' + (ch - (ASCII_SZ - 1));
+	//sometimes it wraps around the wheel twice
+ 	return (ch);
 }
 
 //inverted encryt()
 int decrypt(int ch, size_t key)
 {
-	if(isspace(ch)) return (ch);
-	else if(!isascii(ch)) return (ch);
+	
+	if(isspace(ch) || !isascii(ch))
+		return (ch);
 	key %= ASCII_SZ;
 	ch -= key;
-	if(ASCII_SZ <= ch) ch += ASCII_SZ;
-	if(ch < '!') ch -= '!';
-	return (ch);
+	if(ch < '!')
+		ch = (ASCII_SZ - 1) - ('!' - ch);
+	if(ch < '!')
+		ch = (ASCII_SZ - 1) - ('!' - ch);
+ 	return (ch);
+}
+
+/* wrappers sround encrypt() and decrypt that pipe the output to files*/
+
+void fencrypt(FILE *inp, FILE *out, size_t key)
+{
+	int c;
+	while((c = getc(inp)) != EOF){
+		c = encrypt(c, key);
+		fprintf(out, "%c", c);
+	}
+}
+
+
+void fdecrypt(FILE *inp, FILE *out, size_t key)
+{
+	int c;
+	while((c = getc(inp)) != EOF){
+		c = decrypt(c, key);
+		fprintf(out, "%c", c);
+	}
 }
 
 int main(int argc, char *argv[])
@@ -93,24 +119,24 @@ int main(int argc, char *argv[])
 		fprintf(stderr,"Error opening the file.\n");
 		exit(1);
 	}
-	int c = 0;
 	
 	switch(p_flags.action){
 	//I am so good at the "c" stuff
 	//sometimes I can't believe myself
 		case 'e':{
-			while((c = getc(f)) != EOF){
-				c = encrypt(c, p_flags.key);
-				printf("%c", c);
+			FILE *g;
+			char *outf = strcat(argv[optind], ".cc");
+			g = fopen(outf, "w");
+			if(!g){
+				fprintf(stderr, "Error creating the output file.\n");
+				exit (1);
 			}
+			fencrypt(f, g, p_flags.key);
 			break;
 
 		}
 		case 'd':{
-			while((c = fgetc(f)) != EOF){
-				c = decrypt(c, p_flags.key);
-				printf("%c", c);
-			}
+			fdecrypt(f, stdout, p_flags.key);
 			break;
 		}
 		default:{
